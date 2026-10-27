@@ -1221,9 +1221,13 @@ export function sanitizeReport(raw) {
     integrityChainSeq: count(raw?.integrityChainSeq),
     integrityDropped: count(raw?.integrityDropped),
   });
+  // Trimmed because the plan's `weakness` below is, and the agent's validator
+  // (`validate_report_judging`) compares the two trimmed but stores the model's
+  // text as written. An improvement with a trailing space otherwise matched
+  // no plan item here, and the whole plan was dropped as partial.
   const feedback = (section) => ({
-    strengths: stringList(section?.strengths),
-    improvements: stringList(section?.improvements),
+    strengths: stringList(section?.strengths).map((text) => text.trim()),
+    improvements: stringList(section?.improvements).map((text) => text.trim()),
   });
   const codingFeedback = feedback(raw?.codingFeedback);
   const communicationFeedback = feedback(raw?.communicationFeedback);

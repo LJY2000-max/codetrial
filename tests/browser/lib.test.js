@@ -1889,6 +1889,48 @@ test("improvement plan drops unrelated and hostile items and ranks valid drills"
   assert.equal(report.improvementPlan[2].durationMin, 30);
 });
 
+test("an improvement the agent stored with surrounding whitespace keeps its plan", () => {
+  // The agent validates the trimmed copy and stores the text as written, and
+  // its weakness snap writes the trimmed improvement into the plan item.
+  const report = sanitizeReport({
+    codingFeedback: {
+      strengths: [" Named the invariant"],
+      improvements: ["Explain complexity ", "Test boundaries"],
+    },
+    communicationFeedback: { improvements: [] },
+    improvementPlan: [
+      {
+        phase: "Algorithm",
+        weakness: "Explain complexity",
+        impact: "high",
+        frequency: 1,
+        drill: "Narrate",
+        durationMin: 5,
+        successCriterion: "Justify bounds",
+        selfReview: ["time"],
+      },
+      {
+        phase: "Test",
+        weakness: "Test boundaries",
+        impact: "low",
+        frequency: 1,
+        drill: "Build a test table",
+        durationMin: 5,
+        successCriterion: "Cover four classes",
+        selfReview: ["boundary"],
+      },
+    ],
+  });
+  assert.deepEqual(
+    report.improvementPlan.map((item) => item.weakness),
+    ["Explain complexity", "Test boundaries"],
+  );
+  assert.deepEqual(report.codingFeedback, {
+    strengths: ["Named the invariant"],
+    improvements: ["Explain complexity", "Test boundaries"],
+  });
+});
+
 test("a partial improvement plan is rejected instead of hiding an emitted weakness", () => {
   const report = sanitizeReport({
     codingFeedback: { improvements: ["Explain complexity", "Test boundaries"] },
