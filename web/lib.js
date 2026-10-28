@@ -1227,8 +1227,11 @@ export function sanitizeReport(raw) {
   // no plan item here, and the whole plan was dropped as partial. A line left
   // empty is dropped rather than kept as "": the agent refuses a blank one, so
   // only stored history can carry it, and a blank weakness would match it.
+  // Bounded at the agent's own limit for both lines (`validate_feedback` and
+  // `validate_improvement_plan`, 400 each): cut at `MAX_REPORT_TEXT` instead,
+  // a 350-character improvement matched no plan item and dropped the plan.
   const feedbackList = (list) =>
-    stringList(list)
+    stringList(list, MAX_FEEDBACK_TEXT)
       .map((text) => text.trim())
       .filter(Boolean);
   const feedback = (section) => ({
@@ -1252,7 +1255,7 @@ export function sanitizeReport(raw) {
       const phase = typeof item?.phase === "string" ? item.phase : "";
       const weakness =
         typeof item?.weakness === "string"
-          ? boundedText(item.weakness, 400).trim()
+          ? boundedText(item.weakness, MAX_FEEDBACK_TEXT).trim()
           : "";
       const impact = typeof item?.impact === "string" ? item.impact : "";
       const drill =
@@ -1483,6 +1486,8 @@ function integrityEvents(events) {
 // body with a 413 the candidate can do nothing about, so long grader text or an
 // event flood would silently cost someone their history.
 const MAX_REPORT_TEXT = 300;
+/// A feedback line and the plan weakness that has to equal it.
+const MAX_FEEDBACK_TEXT = 400;
 /// The summary is the one field written to be read as prose, and the agent
 /// validates it at 1200 characters, so anything shorter here is the renderer
 /// quietly editing the grader: real summaries run 400 to 450 characters and
@@ -1516,9 +1521,9 @@ function boundedText(value, max = MAX_REPORT_TEXT) {
   );
 }
 
-function stringList(value) {
+function stringList(value, max = MAX_REPORT_TEXT) {
   return Array.isArray(value)
-    ? value.slice(0, 4).map((item) => boundedText(item))
+    ? value.slice(0, 4).map((item) => boundedText(item, max))
     : [];
 }
 

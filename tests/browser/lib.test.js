@@ -1931,6 +1931,33 @@ test("an improvement the agent stored with surrounding whitespace keeps its plan
   });
 });
 
+test("an improvement past the shorter report bound still keeps its plan", () => {
+  // 301: one past `MAX_REPORT_TEXT`, and inside the agent's 400 for both.
+  const long = "Name the invariant ".repeat(16).slice(0, 301);
+  const report = sanitizeReport({
+    codingFeedback: { improvements: [long] },
+    communicationFeedback: { improvements: [] },
+    improvementPlan: [
+      {
+        phase: "Algorithm",
+        weakness: long,
+        impact: "high",
+        frequency: 1,
+        drill: "Narrate",
+        durationMin: 5,
+        successCriterion: "Justify bounds",
+        selfReview: ["time"],
+      },
+    ],
+  });
+  assert.equal(long.length, 301);
+  assert.deepEqual(report.codingFeedback.improvements, [long]);
+  assert.deepEqual(
+    report.improvementPlan.map((item) => item.weakness),
+    [long],
+  );
+});
+
 test("a blank improvement from stored history cannot carry a blank plan item", () => {
   const report = sanitizeReport({
     codingFeedback: { strengths: ["  "], improvements: ["   "] },
