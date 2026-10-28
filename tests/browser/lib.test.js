@@ -1931,31 +1931,61 @@ test("an improvement the agent stored with surrounding whitespace keeps its plan
   });
 });
 
-test("an improvement past the shorter report bound still keeps its plan", () => {
-  // 301: one past `MAX_REPORT_TEXT`, and inside the agent's 400 for both.
-  const long = "Name the invariant ".repeat(16).slice(0, 301);
-  const report = sanitizeReport({
-    codingFeedback: { improvements: [long] },
-    communicationFeedback: { improvements: [] },
-    improvementPlan: [
-      {
-        phase: "Algorithm",
-        weakness: long,
-        impact: "high",
-        frequency: 1,
-        drill: "Narrate",
-        durationMin: 5,
-        successCriterion: "Justify bounds",
-        selfReview: ["time"],
+test("an improvement past the report bound keeps its plan and its tag", () => {
+  // Past `MAX_REPORT_TEXT` and inside the agent's 400. The feedback copy keeps
+  // the leading space the agent's weakness snap trims off the plan copy, which
+  // is what shifted the cut when the trim came after it.
+  const phases = [
+    "Repeat",
+    "Example",
+    "Algorithm",
+    "Coding",
+    "Test",
+    "Optimizations",
+    "Situation",
+    "Task",
+    "Action",
+    "Result",
+  ];
+  const cases = [301, 350].map((length) => {
+    const line = "Name the invariant ".repeat(20).slice(0, length);
+    const report = sanitizeReport({
+      codingFeedback: { improvements: [` ${line}`] },
+      communicationFeedback: { improvements: [] },
+      improvementPlan: [
+        {
+          phase: "Algorithm",
+          weakness: line,
+          impact: "high",
+          frequency: 1,
+          drill: "Narrate",
+          durationMin: 5,
+          successCriterion: "Justify bounds",
+          selfReview: ["time"],
+        },
+      ],
+      frameworkAssessment: {
+        rubricVersion: 1,
+        phases: phases.map((phase) => ({
+          phase,
+          score: null,
+          weaknessTags: phase === "Algorithm" ? [line] : [],
+        })),
       },
-    ],
+    });
+    return { line, report };
   });
-  assert.equal(long.length, 301);
-  assert.deepEqual(report.codingFeedback.improvements, [long]);
-  assert.deepEqual(
-    report.improvementPlan.map((item) => item.weakness),
-    [long],
-  );
+  for (const { line, report } of cases) {
+    const shown = line.slice(0, 300).trim();
+    assert.deepEqual(report.codingFeedback.improvements, [shown]);
+    assert.deepEqual(
+      report.improvementPlan.map((item) => item.weakness),
+      [shown],
+    );
+    assert.deepEqual(report.frameworkAssessment.phases[2].weaknessTags, [
+      shown,
+    ]);
+  }
 });
 
 test("a blank improvement from stored history cannot carry a blank plan item", () => {

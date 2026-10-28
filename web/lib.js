@@ -1227,13 +1227,8 @@ export function sanitizeReport(raw) {
   // no plan item here, and the whole plan was dropped as partial. A line left
   // empty is dropped rather than kept as "": the agent refuses a blank one, so
   // only stored history can carry it, and a blank weakness would match it.
-  // Bounded at the agent's own limit for both lines (`validate_feedback` and
-  // `validate_improvement_plan`, 400 each): cut at `MAX_REPORT_TEXT` instead,
-  // a 350-character improvement matched no plan item and dropped the plan.
   const feedbackList = (list) =>
-    stringList(list, MAX_FEEDBACK_TEXT)
-      .map((text) => text.trim())
-      .filter(Boolean);
+    Array.isArray(list) ? list.slice(0, 4).map(planLine).filter(Boolean) : [];
   const feedback = (section) => ({
     strengths: feedbackList(section?.strengths),
     improvements: feedbackList(section?.improvements),
@@ -1254,9 +1249,7 @@ export function sanitizeReport(raw) {
     .map((item) => {
       const phase = typeof item?.phase === "string" ? item.phase : "";
       const weakness =
-        typeof item?.weakness === "string"
-          ? boundedText(item.weakness, MAX_FEEDBACK_TEXT).trim()
-          : "";
+        typeof item?.weakness === "string" ? planLine(item.weakness) : "";
       const impact = typeof item?.impact === "string" ? item.impact : "";
       const drill =
         typeof item?.drill === "string"
@@ -1354,7 +1347,7 @@ export function sanitizeReport(raw) {
       ...new Set(
         item.weaknessTags
           .filter((tag) => typeof tag === "string")
-          .map((tag) => boundedText(tag, 400).trim())
+          .map(planLine)
           .filter((tag) => tag && allowedTags.has(tag)),
       ),
     ].slice(0, 4);
@@ -1486,8 +1479,6 @@ function integrityEvents(events) {
 // body with a 413 the candidate can do nothing about, so long grader text or an
 // event flood would silently cost someone their history.
 const MAX_REPORT_TEXT = 300;
-/// A feedback line and the plan weakness that has to equal it.
-const MAX_FEEDBACK_TEXT = 400;
 /// The summary is the one field written to be read as prose, and the agent
 /// validates it at 1200 characters, so anything shorter here is the renderer
 /// quietly editing the grader: real summaries run 400 to 450 characters and
@@ -1521,10 +1512,19 @@ function boundedText(value, max = MAX_REPORT_TEXT) {
   );
 }
 
-function stringList(value, max = MAX_REPORT_TEXT) {
+function stringList(value) {
   return Array.isArray(value)
-    ? value.slice(0, 4).map((item) => boundedText(item, max))
+    ? value.slice(0, 4).map((item) => boundedText(item))
     : [];
+}
+
+/// A feedback line, a plan weakness or a weakness tag, which have to come out
+/// equal whenever the agent's trimmed copies were. The agent bounds them at 400
+/// and this at `MAX_REPORT_TEXT`, so the trim comes before the cut as well as
+/// after it: cut first, a leading space the agent trimmed off one copy and not
+/// the other shifted the cut by a character and the two no longer matched.
+function planLine(value) {
+  return boundedText(String(value).trim()).trim();
 }
 
 /// When the interview starts reading as nearly over, both to the candidate and
