@@ -1224,10 +1224,16 @@ export function sanitizeReport(raw) {
   // Trimmed because the plan's `weakness` below is, and the agent's validator
   // (`validate_report_judging`) compares the two trimmed but stores the model's
   // text as written. An improvement with a trailing space otherwise matched
-  // no plan item here, and the whole plan was dropped as partial.
+  // no plan item here, and the whole plan was dropped as partial. A line left
+  // empty is dropped rather than kept as "": the agent refuses a blank one, so
+  // only stored history can carry it, and a blank weakness would match it.
+  const feedbackList = (list) =>
+    stringList(list)
+      .map((text) => text.trim())
+      .filter(Boolean);
   const feedback = (section) => ({
-    strengths: stringList(section?.strengths).map((text) => text.trim()),
-    improvements: stringList(section?.improvements).map((text) => text.trim()),
+    strengths: feedbackList(section?.strengths),
+    improvements: feedbackList(section?.improvements),
   });
   const codingFeedback = feedback(raw?.codingFeedback);
   const communicationFeedback = feedback(raw?.communicationFeedback);

@@ -1931,6 +1931,27 @@ test("an improvement the agent stored with surrounding whitespace keeps its plan
   });
 });
 
+test("a blank improvement from stored history cannot carry a blank plan item", () => {
+  const report = sanitizeReport({
+    codingFeedback: { strengths: ["  "], improvements: ["   "] },
+    communicationFeedback: { improvements: [] },
+    improvementPlan: [
+      {
+        phase: "Algorithm",
+        weakness: "   ",
+        impact: "high",
+        frequency: 1,
+        drill: "Narrate",
+        durationMin: 5,
+        successCriterion: "Justify bounds",
+        selfReview: ["time"],
+      },
+    ],
+  });
+  assert.deepEqual(report.improvementPlan, []);
+  assert.deepEqual(report.codingFeedback, { strengths: [], improvements: [] });
+});
+
 test("a partial improvement plan is rejected instead of hiding an emitted weakness", () => {
   const report = sanitizeReport({
     codingFeedback: { improvements: ["Explain complexity", "Test boundaries"] },
