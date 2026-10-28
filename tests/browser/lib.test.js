@@ -1947,10 +1947,15 @@ test("an improvement past the report bound keeps its plan and its tag", () => {
     "Action",
     "Result",
   ];
-  const cases = [301, 350].map((length) => {
+  // U+0085 is White_Space to the agent's `trim` and not to JavaScript's.
+  const cases = [
+    [301, " "],
+    [350, " "],
+    [300, "\u0085"],
+  ].map(([length, lead]) => {
     const line = "Name the invariant ".repeat(20).slice(0, length);
     const report = sanitizeReport({
-      codingFeedback: { improvements: [` ${line}`] },
+      codingFeedback: { improvements: [`${lead}${line}`] },
       communicationFeedback: { improvements: [] },
       improvementPlan: [
         {

@@ -1523,8 +1523,13 @@ function stringList(value) {
 /// and this at `MAX_REPORT_TEXT`, so the trim comes before the cut as well as
 /// after it: cut first, a leading space the agent trimmed off one copy and not
 /// the other shifted the cut by a character and the two no longer matched.
+/// Control characters become spaces before that first trim: Rust's `trim`
+/// strips U+0085, which is Unicode White_Space, and JavaScript's does not, so
+/// left to `boundedText` it turned into a space that took a slot in the cut.
 function planLine(value) {
-  return boundedText(String(value).trim()).trim();
+  return boundedText(
+    String(value).replace(CONTROL_SEPARATOR, " ").trim(),
+  ).trim();
 }
 
 /// When the interview starts reading as nearly over, both to the candidate and
